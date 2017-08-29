@@ -1,0 +1,151 @@
+#windows/
+#src/
+
+.hgignore
+.hgtags
+AUTHORS
+CHANGES.html
+LICENSE
+Makefile
+README
+RELEASE_NOTES
+VERSION
+bindings/
+doc/
+ns3/
+scratch/
+
+test.py
+testpy.supp
+utils.py
+utils/
+waf
+waf-tools/
+waf.bat
+wscript
+wutils.py
+
+#####examples
+/examples/
+
+##src
+windows/examples/
+src/emu/
+src/dsdv/
+src/brite/
+src/uan/test/
+src/click/
+src/brite/helper/
+src/brite/test/
+src/click/helper/
+src/click/model/
+src/dsdv/helper/
+src/dsdv/model/
+src/dsdv/test/
+src/emu/helper/
+src/emu/model/
+src/emu/test/
+src/fd-net-device/
+src/openflow/
+src/tap-bridge/
+src/test/
+src/topology-read/
+src/uan/model/
+src/uan/helper/
+src/visualizer/
+
+#####################
+
+antenna/
+aodv/
+applications/
+bridge/
+buildings/
+config-store/
+core/
+csma/
+csma-layout/
+Debug/
+dsdn/
+dsr/
+energy/
+flow-monitor/
+headers/
+InstallHeaders/
+internet/
+olsr/
+lte/
+point-to-point/
+point-to-point-layout/
+network/
+test-runner/
+tools/
+virtual-net-device
+stats/
+spectrum
+propagation/
+nix-vector-routing/
+
+mesh/
+mpi/
+netanim/
+mobility/
+test-runner/
+wimax/
+winport/
+wifi/
+
+# Created by https://www.gitignore.io/api/c++
+
+### C++ ###
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+main.cpp
+
+# Executables
+*.exe
+*.out
+*.app
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.txt
+*.zip
+*.log
+*.vcxproj.filters
+*.asc
+*.gpl
+*.vcxproj
+*.py
+uan/uan-header-rc1 - 복사본.cpp
+uan/uan-header-rc1 - 복사본.h
+uan/uan-mac-cw1 - 복사본.cc
+uan/uan-mac-cw1 - 복사본.h
+
+# End of https://www.gitignore.io/api/c++
