@@ -205,7 +205,7 @@ UanMacCw1::Enqueue (Ptr<Packet> packet, const Address &dest, uint16_t protocolNu
     }
 
 	//좌표를 설정
-	if ( m_pointFlag)
+	if (m_pointFlag)
 	{
 		setPoint();
 	}
@@ -501,17 +501,14 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 		if ( ch.GetDest() == m_address)
 		{
 			dataPkt = pkt ; //순수 데이터
-
 			pkt = 0 ;
 			pkt = new Packet();
-
 			pkt->AddHeader(ph);
 			pkt->AddHeader(datah);
 		}
-
 		m_propDelay[ch.GetSrc()] = Simulator::Now() - datah.GetTimeStamp() - Seconds (m_DATA * 8.0 / m_currentRate); // 현재시간 - 받은시간 = (지연시간+패킷전송시간) - 패킷전송시간
-		
 		break;
+
 	case TYPE_RTS:
 		pkt->RemoveHeader(rtsh);
 		if ( ch.GetDest() == m_address)
@@ -520,6 +517,7 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 		}
 		m_propDelay[ch.GetSrc()] = Simulator::Now() - rtsh.GetTimeStamp() - Seconds (m_RTS * 8.0 / m_currentRate); // 현재시간 - 받은시간 = (지연시간+패킷전송시간) - 패킷전송시간
 		break;
+
 	case TYPE_CTS:
 		pkt->RemoveHeader(ctsh);
 		pkt->RemoveHeader(ph);
@@ -538,6 +536,7 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 		}
 		m_propDelay[ch.GetSrc()] = Simulator::Now() - ctsh.GetTimeStamp() - Seconds (m_CTS * 8.0 / m_currentRate); // 현재시간 - 받은시간 = (지연시간+패킷전송시간) - 패킷전송시간
 		break;
+
 	case TYPE_ACK:
 		pkt->RemoveHeader(ackh);
 		if ( ch.GetDest() == m_address)
@@ -546,11 +545,12 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 		}
 		m_propDelay[ch.GetSrc()] = Simulator::Now() - ackh.GetTimeStamp() - Seconds (m_ACK * 8.0 / m_currentRate); // 현재시간 - 받은시간 = (지연시간+패킷전송시간) - 패킷전송시간
 		break;
-	default : 
-		if ( DEBUG_PRINT > 1)
-			cout << "Unknown packet type " << ch.GetType () << " received at node " << (uint32_t)m_address.GetAsInt()<< "\n";
-		NS_FATAL_ERROR ("Unknown packet type " << ch.GetType () << " received at node " << (uint32_t)m_address.GetAsInt());
 
+	default : 
+		if ( DEBUG_PRINT > 1) {
+			cout << "Unknown packet type " << ch.GetType () << " received at node " << (uint32_t)m_address.GetAsInt()<< "\n";
+		}
+		NS_FATAL_ERROR ("Unknown packet type " << ch.GetType () << " received at node " << (uint32_t)m_address.GetAsInt());
 	}
 
 	
@@ -634,26 +634,26 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 			if ( datah.GetSelectedNode() == NOT_FOUND )
 			{
 				// 그냥 평소대로 진행
-
-				
-
 				if ( m_navTime != Seconds(0) )
 				{
 					Simulator::Cancel(m_navEndEvent);
 					m_navTime = Seconds(0);
-					if ( DEBUG_PRINT > 1)
+					if ( DEBUG_PRINT > 1) {
 						cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " << (uint32_t)m_address.GetAsInt() << ": 연속적인 데이터 전체 수신완료 " << "NAV 삭제 \n";
+					}
 
 					m_transPktTx = m_savePktTx;
 				}
-				
+				if ( DEBUG_PRINT > 1) {
+					cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " << (uint32_t)m_address.GetAsInt() << " navTime : " << m_navTime.GetSeconds() <<"\n";
+				}
+
 				
 			}
 			else
 			{
 				//AP의 경우 다른 데이터가 연속으로 올수 있는지 확인 후 NAV의 들어가야함
 				//데이터를 연속적으로 받고 다시 SIFS를 동작시키면됨
-				
 				if ( m_selectedNodes.size() == 0 )
 				{
 					m_savePktTx = m_transPktTx;
@@ -661,20 +661,39 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 				m_selectedNodes.push_back(datah.GetSelectedNode());
 
 				Time tempNavTime = datah.GetArrivalTime(); //임시로 설정
-				m_navEndEvent = Simulator::Schedule (tempNavTime, &UanMacCw1::navTimer, this); // 
 
-				if ( DEBUG_PRINT > 1)
-					cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " << (uint32_t)m_address.GetAsInt() << ": NAV이벤트 생성 " << (Simulator::Now ()+tempNavTime).GetSeconds() << " : NAV종료시간\n";
+				if ( m_navTime != Seconds(0)  ) // 기존의 NAV < 현재의 NAV인 경우 큰 시간으로 덮어씀
+				{
+					Time nextNavTime = tempNavTime + Simulator::Now();
+					if ( m_navTime < nextNavTime )
+					{
+						Simulator::Cancel(m_navEndEvent);
+						m_navTime = tempNavTime ;
+						m_navEndEvent = Simulator::Schedule(m_navTime, &UanMacCw1::navTimer, this);
+						m_navTime = Simulator::Now () + m_navTime;
 
-				m_navTime = tempNavTime + Simulator::Now();
+						if ( DEBUG_PRINT >1)
+							cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " << (uint32_t)m_address.GetAsInt() << ": 기존의 NAV 삭제 후 NAV이벤트 생성 " << m_navTime.GetSeconds() << " : NAV종료시간\n";
+					}
+				}
+				else
+				{
+					m_navEndEvent = Simulator::Schedule (tempNavTime, &UanMacCw1::navTimer, this); // 
+
+					if ( DEBUG_PRINT > 1)
+						cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " << (uint32_t)m_address.GetAsInt() << ": NAV이벤트 생성 " << (Simulator::Now ()+tempNavTime).GetSeconds() << " : NAV종료시간\n";
+			
+					m_navTime = tempNavTime + Simulator::Now();
+				}
+				if ( DEBUG_PRINT > 1) {
+					cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " << (uint32_t)m_address.GetAsInt() << " tempNavTime :" << m_navTime.GetSeconds() <<"\n";
+				}
 				m_prevState = m_state;
 				m_state = NAV;
 				m_waitFlag = true ;
 				return ;
 			}
-
-
-			//늦게온 노드가 dest로 설정되는 아이러니한 상황 발생
+			// 늦게온 노드가 dest로 설정되는 아이러니한 상황 발생
 
 			m_waitFlag = false ;
 			/*SIFS를 통해 보내지는 패킷과 포트번호*/
@@ -750,22 +769,19 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 						Simulator::Cancel(m_backOffEvent);
 						m_backoffTime = Seconds(0);
 					}
-
 					m_backoff = Seconds(0);
 					m_reset_cw += m_reset_cw;
 				}
 			}
-			
-
 			processingSuccess();
-
 			
 			return;
 		}
 		if ( m_sendTime != Seconds(0) )
 		{
-			if ( DEBUG_PRINT > 1)
+			if ( DEBUG_PRINT > 1) {
 				cout << "Time " << Simulator::Now().GetSeconds () << " Addr " <<(uint32_t)m_address.GetAsInt() << " sendTimer 작동중이므로 NAV이벤트 생성 무시 받은 패킷버림\n";
+			}
 			m_prevState = m_state ;
 			m_state = IDLE;
 			return ;
@@ -783,12 +799,12 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 		switch(ch.GetType())
 		{
 		case TYPE_RTS:
-			tempNavTime = rtsh.GetDuration() - Seconds (m_RTS * 8.0 / m_currentRate) ; // - Seconds(m_maxPropDelay)  ; // 
+			tempNavTime = rtsh.GetDuration() - Seconds(m_RTS * 8.0 / m_currentRate); // - Seconds(m_maxPropDelay)  ; // 
 			//propDelay = m_propDelay[ch.GetDest()]+m_propDelay[ch.GetSrc()] + m_propDelay[ch.GetDest()];// CTS지연, DATA지연, ACK지연
 			//propDelay = Seconds(m_maxPropDelay)  + Seconds(m_maxPropDelay) + Seconds(m_maxPropDelay) ;
 			break;
 		case TYPE_CTS:
-			tempNavTime = ctsh.GetDuration() - Seconds (m_CTS * 8.0 / m_currentRate) - Seconds(m_maxPropDelay);
+			tempNavTime = ctsh.GetDuration() - Seconds(m_CTS * 8.0 / m_currentRate) - Seconds(m_maxPropDelay);
 			//propDelay = m_propDelay[ch.GetSrc()]+m_propDelay[ch.GetDest()]; // DATA지연, ACK지연
 			//propDelay = Seconds(m_maxPropDelay)  + Seconds(m_maxPropDelay)  ;
 			break;
@@ -796,17 +812,21 @@ UanMacCw1::PhyRxPacketGood (Ptr<Packet> pkt, double sinr, UanTxMode mode)
 			/* 연속적인 데이터 전송방법 적용 */
 			if (datah.GetSelectedNode() == (uint32_t)m_address.GetAsInt())
 			{
-				
-				setCtsPacket();
-				//일정시간 뒤 SIFS돌입
-				Time arrival =datah.GetArrivalTime() - ( Simulator::Now() - datah.GetTimeStamp() ); // arrival 시간을 더 정확하게 계산해야함
-
+				setCtsPacket(ch.GetSrc().GetAsInt());
+				// 일정시간 뒤 SIFS돌입
+				// 도착시간 - datah받는데 걸린 지연시간
+				Time arrival = datah.GetArrivalTime() - (Simulator::Now() - datah.GetTimeStamp()); //arrival 시간을 더 정확하게 계산해야함
+				// 선택된 노드의 거리보다 AP와의 거리보다 긴 경우 발생함
+				if ( arrival < 0 ) {
+					arrival = Seconds(0) ;
+				}
 				if ( DEBUG_PRINT > 1 ) {
-					cout << "Time " << (Simulator::Now()).GetSeconds() << " Addr "  << (uint32_t)m_address.GetAsInt() << " arrivalTime : " << arrival.GetSeconds() << " " << arrival <<"\n";
+					cout << "datah.GetArrivalTime() : " << datah.GetArrivalTime() << " Simulator::Now() : " << Simulator::Now() << " datah.GetTimeStamp() : " << datah.GetTimeStamp()<< "\n";  
+					cout << "(Simulator::Now() - datah.GetTimeStamp()) : " << (Simulator::Now() - datah.GetTimeStamp()) << '\n';
 				}
 
 				/*SIFS를 통해 보내지는 패킷과 포트번호*/
-				m_sifsEvent =  Simulator::Schedule ( arrival, &UanMacCw1::sifsTimer, this); // ACK 전송 SIFS
+				m_sifsEvent =  Simulator::Schedule (arrival, &UanMacCw1::sifsTimer, this); // ACK 전송 SIFS
 				if ( DEBUG_PRINT > 1)
 					cout << "Time " << (Simulator::Now()).GetSeconds() << " Addr "  << (uint32_t)m_address.GetAsInt() << ": 기존의 NAV 삭제 후 연속적인 데이터 전송을 위한 SIFS 생성 " << (Simulator::Now()+arrival).GetSeconds() << "에 SIFSEvent 이벤트 발동\n";
 				m_sifsTime = Simulator::Now() + arrival;
@@ -1249,36 +1269,33 @@ void UanMacCw1::sifsTimer()
 					cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " <<(uint32_t)m_address.GetAsInt() << " 패킷 헤더에 설정 -> " << Simulator::Now().GetSeconds() << "\n";
 			}
 
-			if ( TRANSMODE == 1 )
+			if (TRANSMODE == 1)
 			{
 				selectedNode = getRandomNode();
 			}
-			else if ( TRANSMODE == 2 )
+			else if (TRANSMODE == 2)
 			{
 				selectedNode = getNearestNode();
 			}
-			else if ( TRANSMODE == 3)
+			else if (TRANSMODE == 3)
 			{
 				selectedNode = getFairnessNode();
-
-				
 			}
 			
 			if ( DEBUG_PRINT > 1)
-				cout << "Time " << Simulator::Now ().GetSeconds () << " " << (uint32_t)m_address.GetAsInt() << " selecetdNode-> "  << selectedNode << "\n";
+				cout << "Time " << Simulator::Now().GetSeconds () << " " << (uint32_t)m_address.GetAsInt() << " selecetdNode-> "  << selectedNode << "\n";
 
+			//현재 노드와 AP까지의 지연시간 + 데이터 전송시간
+			//Ack는 AP가 데이터를 여러개 받을 수 있기에 시간에서 제외시켜 놓음
 			Time arrivalTime = m_propDelay[ch.GetSrc()] + Seconds(m_DATA*8.0/m_currentRate) ;
 
 			if ( DEBUG_PRINT > 1)
-				cout << "Time " << Simulator::Now ().GetSeconds () << " src " << (uint32_t)m_address.GetAsInt() << "-> dest " << (uint32_t)ch.GetSrc().GetAsInt() << " arrivalTime->  " << (Simulator::Now() +arrivalTime).GetSeconds() << "에 데이터 패킷 도착\n";
-			//Time selectedNodeDuration = CalculateTime(selectedNode);
-			//randomDistance();
-			//fairnessDistance();
+				cout << "Time " << Simulator::Now().GetSeconds () << " src " << (uint32_t)m_address.GetAsInt() << "-> dest " << (uint32_t)ch.GetSrc().GetAsInt() << " arrivalTime->  " << (Simulator::Now() +arrivalTime).GetSeconds() << "에 데이터 패킷 도착\n";
 
 			transDatah.SetArrivalTime(arrivalTime);
 			transDatah.SetSelectedNode(selectedNode);
 			transDatah.SetTimeStamp(Simulator::Now());
-			transDatah.SetDuration( ctsh.GetDuration() - Seconds (m_CTS * 8.0 / m_currentRate)  - Seconds(m_sifs) -Seconds(m_maxPropDelay));  // data 패킷은 아직안보냈기때문에 byte에서 200만큼의 데이터 패킷 수를 빼줘야함
+			transDatah.SetDuration(ctsh.GetDuration() - Seconds (m_CTS * 8.0 / m_currentRate) - Seconds(m_sifs) - Seconds(m_maxPropDelay));  // data 패킷은 아직안보냈기때문에 byte에서 200만큼의 데이터 패킷 수를 빼줘야함
 			transDatah.SetProtocolNumber(ctsh.GetProtocolNumber());
 			protNum = ctsh.GetProtocolNumber();
 			m_transPktTx->AddHeader(transDatah);
@@ -1514,18 +1531,20 @@ uint32_t UanMacCw1::getSection(Vector2D arr[], int currNode, int APNode)
 	uint32_t section;
 	double r = (m_boundary - arr[APNode].x)*sqrt(2) ; //1:1:sqrt(2) 피타고라스의 정리
 
-	if ( 0 <= distance && distance < r/3 )
+	if ( 0 <= distance && distance < r/3 ) {
 		section = 1;
-	else if (r/3 <= distance && distance < r/3*2)
+	}
+	else if (r/3 <= distance && distance < r/3*2) {
 		section = 2;
-	else
+	}
+	else {
 		section = 3;
+	}
 
 	return section ;
 }
 void UanMacCw1::setPoint()
 {
-
 	//ConstantRandomVariable일때만 적용가능한 방식
 	uint32_t currNode = m_nodeIncrease; //노드의 시작위치지정
 	Vector2D arr[256];
@@ -1536,10 +1555,12 @@ void UanMacCw1::setPoint()
 	while(currNode != APNode)
 	{
 		double distance;
-		if ( currNode != myNode)
+		if ( currNode != myNode) {
 			distance = CalculateDistance(arr[myNode],arr[currNode]);
-		else //같은경우
-			distance = -1;
+		}
+		else {//같은경우 
+			distance = -1; 
+		}
 		m_distance[currNode] = make_pair(distance,getSection(arr,currNode,APNode));
 
 		currNode = (currNode+1)%m_nodeMAX;
@@ -1798,11 +1819,10 @@ void UanMacCw1::processingSuccess()
 		}
 	}
 }
-void UanMacCw1::setCtsPacket()
+void UanMacCw1::setCtsPacket(int src)
 {
-	//NAV 삭제
 	Ptr<Packet> pkt;
-
+	//NAV 삭제
 	if ( m_navTime != Seconds(0) )
 	{
 		Simulator::Cancel(m_navEndEvent);
@@ -1828,14 +1848,11 @@ void UanMacCw1::setCtsPacket()
 	tempctsh.SetTimeStamp(Simulator::Now());
 	Time duration =  Seconds( (( m_CTS + m_DATA + m_ACK  )*8.0) / m_currentRate ) + Seconds(m_sifs*2) + Seconds(m_maxPropDelay*3) ; // ( CTS +  DATA + ACK )/bps + SIFS * 3
 	//패킷을 보내고 다른 노드와 동일한 출발을 위해 잠들어 있어야 하는 시간을 계산하기 위한 변수
-	if ( DEBUG_PRINT > 1 ) {
-		cout << "시뮬 시간 : "  << Simulator::Now() << "duration : " << duration << '\n';
-		cout << Simulator::Now ().GetSeconds () << '\n';
-	}
 	m_sleepTime = duration + Simulator::Now();
 
-	if ( DEBUG_PRINT > 1)
-		cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " <<(uint32_t)m_address.GetAsInt() << " 도움을 받아 " << m_sleepTime.GetSeconds() <<"에 전송완료시간 \n";
+	if ( DEBUG_PRINT > 1) {
+		cout << "Time " << Simulator::Now ().GetSeconds () << " Addr " <<(uint32_t)m_address.GetAsInt() << "는 " << src << "의 도움을 받아 " << m_sleepTime.GetSeconds() <<"에 전송완료시간 \n";
+	}
 
 	//duration 설정
 	tempctsh.SetDuration(duration); // (typeheader 보내는시간 + commonheader보내는시간 + packect 보내는시간)*8*4 + SIFS*3 //8바이트

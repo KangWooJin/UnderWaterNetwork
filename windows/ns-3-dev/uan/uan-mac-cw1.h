@@ -41,8 +41,8 @@
 using namespace std;
 
 
-#define DEBUG_PRINT  2 //Lv0 : 디버그 메세지 출력 안함	Lv1 : 디버그 성공 횟수 출력 Lv2 : 디버그 메세지 부분 출력		Lv3 : 디버그 메세지 전체 출력
-#define TRANSMODE 1 // Lv0 : 일반		Lv1 : 랜덤		 Lv2 : 최적		 Lv3 : 공평성+백오프증가
+#define DEBUG_PRINT  1 //Lv0 : 디버그 메세지 출력 안함	Lv1 : 디버그 성공 횟수 출력 Lv2 : 디버그 메세지 부분 출력		Lv3 : 디버그 메세지 전체 출력
+#define TRANSMODE 3 // Lv0 : 일반		Lv1 : 랜덤		 Lv2 : 최적		 Lv3 : 공평성+백오프증가
 
 namespace ns3 {
 
@@ -220,7 +220,7 @@ private:
   void EndTx (void);
 
   void processingSuccess();
-  void setCtsPacket();
+  void setCtsPacket(int src);
   void setPoint(); // 모든 노드의 좌표를 가져와 구간, 거리를 계산하고 정렬함
   double CalculateDistance (const Vector2D &a, const Vector2D &b); // 거리계산용
   uint32_t splitPoint(Vector2D arr[], uint32_t count); // 좌표를 스플릿하기위해
